@@ -45,7 +45,7 @@ def daily():
         latest_match = get_latest_match()
         message_text = f"{player_name} played their last match at {latest_match.strftime('%d.%m.%Y')}."
         logging.debug(message_text)
-        send_message(message_text, True)
+        return send_message(message_text, True)
     else:
         logging.warning(f'Last check was only {(datetime.now() - LAST_CHECK).seconds / 60 / 60} hours ago.')
         return {'Response': 'Limit reached'}, 429
@@ -58,7 +58,7 @@ def cron():
     if latest_match.strftime('%Y') == "2024":
         message_text = f"{player_name} just started a game at {latest_match.strftime('%d.%m.%Y')}."
         logging.debug(message_text)
-        send_message(message_text)
+        return send_message(message_text)
     else:
         logging.error("Run did not produce anything.")
         return {'Response': 'Done'}, 204
