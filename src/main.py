@@ -11,7 +11,7 @@ import urllib.parse
 app = Flask(__name__)
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-LAST_CHECK = (datetime.now() - timedelta(minutes=30))
+LAST_CHECK = (datetime.now() - timedelta(hours=12))
 
 if "PLAYER_ID" in os.environ:
     PLAYER_ID = os.environ['PLAYER_ID']
