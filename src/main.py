@@ -36,44 +36,50 @@ def home():
     return redirect("https://www.tobiasmichael.de/", code=302)
 
 
-@app.route('/cron')
-def cron():
+@app.route('/daily')
+def daily():
     global LAST_CHECK
-    if (datetime.now() - LAST_CHECK) > timedelta(minutes=30):
+    if (datetime.now() - LAST_CHECK) > timedelta(hours=12):
         LAST_CHECK = datetime.now()
         player_name = get_player_name()
         latest_match = get_latest_match()
-        message_text = None
-        message_silent = False
-        if LAST_CHECK.strftime("%H") == "18":
-            message_text = f"{player_name} played their last match at {latest_match.strftime('%d.%m.%Y')}."
-            message_silent = True
-            logging.debug(message_text)
-        if latest_match.strftime('%Y') == "2024":
-            message_text = f"{player_name} just started a game at {latest_match.strftime('%d.%m.%Y')}."
-            logging.debug(message_text)
-        if message_text is not None:
-            full_message_url = f'https://api.telegram.org/bot{os.environ["BOT_TOKEN"]}/sendMessage?' \
-                               + urllib.parse.urlencode({
-                "chat_id": os.environ["GROUP_ID"],
-                "text": message_text.replace('-', '\\-').replace('.', '\\.'),
-                "parse_mode": "MarkdownV2",
-                "disable_notification": message_silent
-            })
-            logging.info(f"See full message here: {full_message_url}")
-            bot_request = requests.get(full_message_url)
-            if bot_request.status_code == 200:
-                logging.info('Send message successful.')
-                return {'Response': 'Done'}, 200
-            else:
-                logging.error(f"Sending message failed: {bot_request.content}")
-                return {'Response': 'Error'}, 400
-        else:
-            logging.error("Run did not produce anything.")
-            return {'Response': 'Done'}, 204
+        message_text = f"{player_name} played their last match at {latest_match.strftime('%d.%m.%Y')}."
+        logging.debug(message_text)
+        send_message(message_text, True)
     else:
-        logging.warning(f'Last check was only {(datetime.now() - LAST_CHECK).seconds / 60} minutes ago.')
+        logging.warning(f'Last check was only {(datetime.now() - LAST_CHECK).seconds / 60 / 60} hours ago.')
         return {'Response': 'Limit reached'}, 429
+
+
+@app.route('/cron')
+def cron():
+    player_name = get_player_name()
+    latest_match = get_latest_match()
+    if latest_match.strftime('%Y') == "2024":
+        message_text = f"{player_name} just started a game at {latest_match.strftime('%d.%m.%Y')}."
+        logging.debug(message_text)
+        send_message(message_text)
+    else:
+        logging.error("Run did not produce anything.")
+        return {'Response': 'Done'}, 204
+
+
+def send_message(message_text, message_silent=False):
+    full_message_url = f'https://api.telegram.org/bot{os.environ["BOT_TOKEN"]}/sendMessage?' \
+                       + urllib.parse.urlencode({
+        "chat_id": os.environ["GROUP_ID"],
+        "text": message_text.replace('-', '\\-').replace('.', '\\.'),
+        "parse_mode": "MarkdownV2",
+        "disable_notification": message_silent
+    })
+    logging.info(f"See full message here: {full_message_url}")
+    bot_request = requests.get(full_message_url)
+    if bot_request.status_code == 200:
+        logging.info('Send message successful.')
+        return {'Response': 'Done'}, 200
+    else:
+        logging.error(f"Sending message failed: {bot_request.content}")
+        return {'Response': 'Error'}, 400
 
 
 if __name__ == '__main__':
