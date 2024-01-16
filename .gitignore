@@ -1,0 +1,6 @@
+venv/
+.idea
+docker-compose.yaml
+files/
+local-env
+temp
