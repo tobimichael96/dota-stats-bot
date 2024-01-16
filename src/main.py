@@ -22,13 +22,24 @@ if "GROUP_ID" in os.environ:
 
 
 def get_latest_match():
-    return datetime.fromtimestamp(json.loads(
-        requests.get(f"https://api.opendota.com/api/players/{PLAYER_ID}/recentMatches").content)[0]["start_time"])
+    request_return = requests.get(f"https://api.opendota.com/api/players/{PLAYER_ID}/recentMatches")
+    request_content = json.loads(request_return.content)
+    logging.debug(request_content)
+    if request_return.status_code == 200 and len(request_content) > 0:
+        return datetime.fromtimestamp(request_content[0]["start_time"])
+    else:
+        logging.error(f"API data was not right: {request_content}")
+        return None
 
 
 def get_player_name():
-    return json.loads(requests.get(f"https://api.opendota.com/api/players/{PLAYER_ID}").content)["profile"][
-        "personaname"]
+    request_return = requests.get(f"https://api.opendota.com/api/players/{PLAYER_ID}")
+    request_content = json.loads(request_return.content)["profile"]["personaname"]
+    if request_return.status_code == 200:
+        return request_content
+    else:
+        logging.error(f"API data was not right: {request_content}")
+        return None
 
 
 @app.route('/')
@@ -43,6 +54,8 @@ def daily():
         LAST_CHECK = datetime.now()
         player_name = get_player_name()
         latest_match = get_latest_match()
+        if latest_match is None or player_name is None:
+            return {'Response': 'Error'}, 400
         message_text = f"{player_name} played their last match at {latest_match.strftime('%d.%m.%Y')}."
         logging.debug(message_text)
         return send_message(message_text, True)
@@ -55,6 +68,8 @@ def daily():
 def cron():
     player_name = get_player_name()
     latest_match = get_latest_match()
+    if latest_match is None or player_name is None:
+        return {'Response': 'Error'}, 400
     if latest_match.strftime('%Y') == "2024":
         message_text = f"{player_name} just started a game at {latest_match.strftime('%d.%m.%Y')}."
         logging.debug(message_text)
